@@ -1,0 +1,55 @@
+﻿
+> ai-agent@0.1.0 lint:all
+> eslint . --fix
+
+
+C:\Projects\AI-Recruitment-Agent\app\(main)\candidate\dashboard\_components\WelcomeContainer.jsx
+  67:6  warning  React Hook useEffect has a missing dependency: 'fetchLatestUserData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Projects\AI-Recruitment-Agent\app\(main)\candidate\profile\page.jsx
+  41:6  warning  React Hook useEffect has a missing dependency: 'loadProfileData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Projects\AI-Recruitment-Agent\app\(main)\recruiter\dashboard\_components\WelcomeContainer.jsx
+  67:6  warning  React Hook useEffect has a missing dependency: 'fetchLatestUserData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Projects\AI-Recruitment-Agent\app\(main)\recruiter\dashboard\create-interview\_components\FormContainer.jsx
+  22:6  warning  React Hook useEffect has a missing dependency: 'onHandleInputChange'. Either include it or remove the dependency array. If 'onHandleInputChange' changes too often, find the parent component that defines it and wrap that definition in useCallback  react-hooks/exhaustive-deps
+
+C:\Projects\AI-Recruitment-Agent\app\(main)\recruiter\dashboard\create-interview\_components\QuestionList.jsx
+  31:6  warning  React Hook useEffect has a missing dependency: 'GenerateQuestionList'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Projects\AI-Recruitment-Agent\app\(main)\recruiter\profile\page.jsx
+  41:6  warning  React Hook useEffect has a missing dependency: 'loadProfileData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Projects\AI-Recruitment-Agent\app\(main)\recruiter\scheduled-interview\[interview_id]\details\_components\CandidateFeedbackDialog.jsx
+  137:6  warning  React Hook React.useEffect has a missing dependency: 'fetchCandidateCV'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Projects\AI-Recruitment-Agent\app\(main)\recruiter\scheduled-interview\[interview_id]\details\page.jsx
+  20:6  warning  React Hook useEffect has a missing dependency: 'GetInterviewDetail'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Projects\AI-Recruitment-Agent\app\(main)\recruiter\scheduled-interview\page.jsx
+  42:6  warning  React Hook useEffect has a missing dependency: 'GetInterviewList'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Projects\AI-Recruitment-Agent\app\admin\interviews\[interview_id]\page.jsx
+  49:6  warning  React Hook useEffect has a missing dependency: 'fetchDetails'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Projects\AI-Recruitment-Agent\app\admin\interviews\page.jsx
+  54:6  warning  React Hook useEffect has a missing dependency: 'filterAndSortInterviews'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Projects\AI-Recruitment-Agent\app\admin\users\page.jsx
+  69:6  warning  React Hook useEffect has a missing dependency: 'filterAndSortUsers'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Projects\AI-Recruitment-Agent\app\interview\[interview_id]\page.jsx
+  37:6  warning  React Hook useEffect has a missing dependency: 'GetInterviewDetails'. Either include it or remove the dependency array         react-hooks/exhaustive-deps
+  53:6  warning  React Hook useEffect has a missing dependency: 'router'. Either include it or remove the dependency array                      react-hooks/exhaustive-deps
+  58:6  warning  React Hook useEffect has missing dependencies: 'userEmail' and 'userName'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Projects\AI-Recruitment-Agent\app\interview\[interview_id]\start\page.jsx
+   65:6  warning  React Hook useEffect has missing dependencies: 'start' and 'startCall'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  178:6  warning  React Hook useEffect has a missing dependency: 'GenerateFeedback'. Either include it or remove the dependency array         react-hooks/exhaustive-deps
+
+C:\Projects\AI-Recruitment-Agent\app\page.js
+  85:6  warning  React Hook useEffect has a missing dependency: 'testimonials.length'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+Ô£û 18 problems (0 errors, 18 warnings)
+
