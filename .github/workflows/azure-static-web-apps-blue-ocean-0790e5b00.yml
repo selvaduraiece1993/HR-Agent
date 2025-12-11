@@ -1,134 +1,55 @@
-name: Azure Static Web Apps CI/CD
+name: Azure Static Web Apps CI/CD (TEST MODE USING .env.local)
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build_and_deploy_job:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
-    name: Build and Deploy Job
+    name: Build & Deploy (Test Mode)
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v3
-        with:
-          submodules: true
-          fetch-depth: 0
 
-      - name: Use Node.js 20 (required by Next.js)
+      - name: Load .env.local for testing
+        run: |
+          echo "Loading .env.local from repo..."
+          if [ -f ".env.local" ]; then
+            export $(grep -v '^#' .env.local | xargs)
+          else
+            echo "❌ .env.local not found"
+            exit 1
+          fi
+
+          # Dump the environment variables into a temp file for Azure SWA to use
+          echo "Creating azure-env-file..."
+          printenv > azure-env-file.env
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.14.0'
-          cache: 'npm'
+          node-version: 20
+          cache: npm
 
-      - name: Load .env.local file and build
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Test local build
         env:
-          CI: true
-        run: |
-          echo "Checking for .env.local file..."
-          if [ ! -f .env.local ]; then
-            echo "ERROR: .env.local file not found in repository root!"
-            exit 1
-          fi
+          $(cat .env.local | sed 's/^/"/;s/=/="/;s/$/"/' )
+        run: npm run build
 
-          echo "Sourcing .env.local..."
-          set -o allexport
-          source .env.local
-          set +o allexport
-          echo "Environment variables loaded (presence-only checks):"
-          echo "Has NEXT_PUBLIC_SUPABASE_URL? -> $( [ -n "$NEXT_PUBLIC_SUPABASE_URL" ] && echo yes || echo no )"
-          echo "Has NEXT_PUBLIC_SUPABASE_ANON_KEY? -> $( [ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ] && echo yes || echo no )"
-
-          echo "Installing dependencies..."
-          npm ci --legacy-peer-deps
-
-          echo "Building Next.js project..."
-          # capture build output to a file for debugging
-          npm run build 2>&1 | tee build.log || BUILD_EXIT=$?
-          echo "Build exit code: ${BUILD_EXIT:-0}"
-
-      - name: Debug - show build.log head and repo root contents
-        if: ${{ always() }}
-        run: |
-          echo "=== build.log (first 200 lines) ==="
-          if [ -f build.log ]; then
-            head -n 200 build.log || true
-          else
-            echo "No build.log found"
-          fi
-          echo
-          echo "=== Repo root listing ==="
-          ls -la
-          echo
-          echo "=== Check for common Next output folders ==="
-          if [ -d ".next" ]; then
-            echo ".next exists - size summary:"
-            du -sh .next || true
-            echo "Listing top-level inside .next:"
-            ls -la .next | sed -n '1,200p' || true
-          else
-            echo ".next does NOT exist"
-          fi
-          if [ -d ".output" ]; then
-            echo ".output exists - size summary:"
-            du -sh .output || true
-            echo "Listing top-level inside .output:"
-            ls -la .output | sed -n '1,200p' || true
-          else
-            echo ".output does NOT exist"
-          fi
-          if [ -d ".next/standalone" ]; then
-            echo ".next/standalone exists"
-          fi
-
-      - name: Prepare chosen artifact path for deploy
-        id: pick_output
-        if: ${{ always() }}
-        run: |
-          # prefer .next, then .output, then fail
-          if [ -d ".next" ]; then
-            echo "output_path=.next" >> $GITHUB_OUTPUT
-          elif [ -d ".output" ]; then
-            echo "output_path=.output" >> $GITHUB_OUTPUT
-          else
-            echo "No recognizable Next build output found (.next or .output). Failing prepare step."
-            # still set output_path to empty so later steps can see it
-            echo "output_path=" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Upload .next/.output for debugging (artifact)
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: next-build
-          path: ${{ steps.pick_output.outputs.output_path || '.next' }}
-
-      - name: Pre-deploy check - confirm selected output folder
-        if: ${{ always() }}
-        run: |
-          echo "Selected output path: '${{ steps.pick_output.outputs.output_path }}'"
-          if [ -z "${{ steps.pick_output.outputs.output_path }}" ]; then
-            echo "ERROR: No build output folder detected. Deployment step below will likely fail or skip."
-            exit 1
-          fi
-          echo "Contents (top-level) of selected folder:"
-          ls -la "${{ steps.pick_output.outputs.output_path }}" || true
-
-      - name: Deploy to Azure Static Web Apps (skip app build)
-        id: builddeploy
+      - name: Deploy to Azure Static Web Apps (FORCE USING ENV FILE)
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
           app_location: "/"
-          api_location: ""
-          # choose the folder we detected above
-          output_location: ${{ steps.pick_output.outputs.output_path }}
-          skip_app_build: true
-          # If the deployment token secret is missing, this prevents the action from failing.
-          skip_deploy_on_missing_secrets: true
+          output_location: ".next"
+          skip_app_build: false
+        env:
+          # Load env variables from our prepared env file
+          $(cat .env.local | sed 's/^/"/;s/=/="/;s/$/"/')
