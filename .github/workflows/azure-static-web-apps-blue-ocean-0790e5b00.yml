@@ -1,4 +1,4 @@
-name: Azure Static Web Apps CI/CD (TEST MODE)
+name: Azure Static Web Apps CI/CD (TEST MODE WITH .env.local)
 
 on:
   push:
@@ -7,47 +7,66 @@ on:
 jobs:
   build_and_deploy_job:
     runs-on: ubuntu-latest
-    name: Build & Deploy Using .env.local (TESTING)
+    name: Build & Deploy Next.js using .env.local (TEST MODE)
 
     steps:
-      - name: Checkout repo
+
+      # ---------------------------------------------
+      # 1. Checkout repo
+      # ---------------------------------------------
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Load .env.local and export variables
+      # ---------------------------------------------
+      # 2. Load .env.local → clean → export as outputs
+      # ---------------------------------------------
+      - name: Load environment variables from .env.local
         id: loadenv
+        shell: bash
         run: |
-          echo "Loading .env.local..."
+          echo "Checking .env.local..."
           if [ ! -f ".env.local" ]; then
-            echo "❌ ERROR: .env.local not found"
+            echo "❌ ERROR: .env.local file NOT FOUND in repository root!"
             exit 1
           fi
 
-          # Read each line and turn into GitHub output
+          echo "Cleaning .env.local (removing comments + blank lines)..."
+          grep -v '^\s*$' .env.local | grep -v '^\s*#' > clean_env.txt
+
+          echo "Exporting environment variables..."
           while IFS='=' read -r key value; do
             if [[ ! -z "$key" ]]; then
-              echo "$key=$value" >> env_export.txt
+              echo "Loaded: $key"
               echo "::set-output name=$key::$value"
             fi
-          done < .env.local
+          done < clean_env.txt
 
-          echo "Environment variables loaded:"
-          cat env_export.txt
-
+      # ---------------------------------------------
+      # 3. Setup Node.js
+      # ---------------------------------------------
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
+      # ---------------------------------------------
+      # 4. Install dependencies
+      # ---------------------------------------------
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Test Next.js build locally with .env.local
+      # ---------------------------------------------
+      # 5. Test local Next.js build (SSR)
+      # ---------------------------------------------
+      - name: Validate Next.js build using .env.local
         env:
-          # Inject ALL env variables dynamically
           ${{ steps.loadenv.outputs }}
         run: npm run build
 
+      # ---------------------------------------------
+      # 6. Deploy to Azure Static Web Apps
+      # ---------------------------------------------
       - name: Deploy to Azure Static Web Apps (TEST MODE)
         uses: Azure/static-web-apps-deploy@v1
         with:
@@ -58,5 +77,4 @@ jobs:
           output_location: ".next"
           skip_app_build: false
         env:
-          # Inject ALL env vars again for Azure build
           ${{ steps.loadenv.outputs }}
