@@ -150,6 +150,7 @@ Start-Process "https://$webAppName.azurewebsites.net"
 ## Troubleshooting
 
 **If deployment fails:**
+
 ```powershell
 # Check app status
 az webapp show --resource-group $resourceGroup --name $webAppName --query "state"
@@ -162,6 +163,7 @@ az webapp log tail --resource-group $resourceGroup --name $webAppName -n 100
 ```
 
 **If you need to redeploy:**
+
 ```powershell
 # Just rebuild and redeploy
 npm run build
@@ -179,6 +181,7 @@ az webapp deployment source config-zip `
 After deployment, update your OAuth providers:
 
 **Google OAuth:**
+
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Navigate to: APIs & Services → Credentials
 3. Edit your OAuth 2.0 Client ID
@@ -188,6 +191,7 @@ After deployment, update your OAuth providers:
    ```
 
 **GitHub OAuth (if used):**
+
 1. Go to GitHub Settings → Developer settings → OAuth Apps
 2. Update "Authorization callback URL":
    ```
@@ -199,6 +203,7 @@ After deployment, update your OAuth providers:
 ## Clean Up (if needed)
 
 To delete everything and start over:
+
 ```powershell
 az group delete --name $resourceGroup --yes --no-wait
 ```
