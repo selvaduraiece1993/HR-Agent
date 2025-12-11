@@ -25,9 +25,67 @@ jobs:
           node-version: '20.14.0'
           cache: 'npm'
 
+      - name: Debug - confirm required secrets exist (no secret values shown)
+        run: |
+          echo "Has NEXT_PUBLIC_SUPABASE_URL? -> $( [ -n "$NEXT_PUBLIC_SUPABASE_URL" ] && echo yes || echo no )"
+          echo "Has NEXT_PUBLIC_SUPABASE_ANON_KEY? -> $( [ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ] && echo yes || echo no )"
+          echo "Has AZURE_OPENAI_API_KEY? -> $( [ -n "$AZURE_OPENAI_API_KEY" ] && echo yes || echo no )"
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+
       - name: Install dependencies (legacy peer deps) and build
         env:
           CI: true
+          # Supabase
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+          # AI Services
+          NEXT_PUBLIC_VAPI_API_KEY: ${{ secrets.NEXT_PUBLIC_VAPI_API_KEY }}
+
+          # Google Models / Keys
+          GOOGLE_MODEL_QUESTION_GENERATION: ${{ secrets.GOOGLE_MODEL_QUESTION_GENERATION }}
+          GOOGLE_MODEL_ANSWER_EVALUATION: ${{ secrets.GOOGLE_MODEL_ANSWER_EVALUATION }}
+          GOOGLE_MODEL_FEEDBACK: ${{ secrets.GOOGLE_MODEL_FEEDBACK }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+
+          GOOGLE_OPENAI_API_KEY: ${{ secrets.GOOGLE_OPENAI_API_KEY }}
+          GOOGLE_OPENAI_ENDPOINT: ${{ secrets.GOOGLE_OPENAI_ENDPOINT }}
+          GOOGLE_OPENAI_API_VERSION: ${{ secrets.GOOGLE_OPENAI_API_VERSION }}
+          GOOGLE_OPENAI_MODEL_QUESTION_GENERATION: ${{ secrets.GOOGLE_OPENAI_MODEL_QUESTION_GENERATION }}
+          GOOGLE_OPENAI_MODEL_ANSWER_EVALUATION: ${{ secrets.GOOGLE_OPENAI_MODEL_ANSWER_EVALUATION }}
+          GOOGLE_OPENAI_MODEL_FEEDBACK: ${{ secrets.GOOGLE_OPENAI_MODEL_FEEDBACK }}
+
+          # OpenRouter
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_ENDPOINT: ${{ secrets.OPENROUTER_ENDPOINT }}
+          OPENROUTER_API_VERSION: ${{ secrets.OPENROUTER_API_VERSION }}
+          OPENROUTER_MODEL_QUESTION_GENERATION: ${{ secrets.OPENROUTER_MODEL_QUESTION_GENERATION }}
+          OPENROUTER_MODEL_ANSWER_EVALUATION: ${{ secrets.OPENROUTER_MODEL_ANSWER_EVALUATION }}
+          OPENROUTER_MODEL_FEEDBACK: ${{ secrets.OPENROUTER_MODEL_FEEDBACK }}
+
+          # Default Provider
+          LLM_PROVIDER: ${{ secrets.LLM_PROVIDER }}
+
+          # Azure OpenAI Models
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_VERSION: ${{ secrets.AZURE_OPENAI_API_VERSION }}
+          AZURE_OPENAI_MODEL_QUESTION_GENERATION: ${{ secrets.AZURE_OPENAI_MODEL_QUESTION_GENERATION }}
+          AZURE_OPENAI_MODEL_ANSWER_EVALUATION: ${{ secrets.AZURE_OPENAI_MODEL_ANSWER_EVALUATION }}
+          AZURE_OPENAI_MODEL_FEEDBACK: ${{ secrets.AZURE_OPENAI_MODEL_FEEDBACK }}
+
+          # Optional / NextAuth / App config
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          NEXT_PUBLIC_HOST_URL: ${{ secrets.NEXT_PUBLIC_HOST_URL }}
+
+          # Table Details
+          NEXT_PUBLIC_INTERVIEWS_TABLE_NAME: ${{ secrets.NEXT_PUBLIC_INTERVIEWS_TABLE_NAME }}
+          NEXT_PUBLIC_INTERVIEW_RESULTS_TABLE_NAME: ${{ secrets.NEXT_PUBLIC_INTERVIEW_RESULTS_TABLE_NAME }}
+          NEXT_PUBLIC_USERS_TABLE_NAME: ${{ secrets.NEXT_PUBLIC_USERS_TABLE_NAME }}
         run: |
           # use legacy-peer-deps to avoid ERESOLVE peer conflicts if needed
           npm ci --legacy-peer-deps
