@@ -25,14 +25,34 @@ jobs:
           node-version: '20.14.0'
           cache: 'npm'
 
-      - name: Install dependencies (legacy peer deps) and build
+      - name: Load .env.local file and build
         env:
           CI: true
         run: |
+          echo "Checking for .env.local file..."
+          if [ ! -f .env.local ]; then
+            echo "ERROR: .env.local file not found in repository root!"
+            exit 1
+          fi
+
+          echo "Sourcing .env.local..."
+          set -o allexport
+          source .env.local
+          set +o allexport
+
+          echo "Environment variables loaded."
+
+          # Debug (does NOT show values)
+          echo "Has NEXT_PUBLIC_SUPABASE_URL? -> $( [ -n "$NEXT_PUBLIC_SUPABASE_URL" ] && echo yes || echo no )"
+          echo "Has NEXT_PUBLIC_SUPABASE_ANON_KEY? -> $( [ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ] && echo yes || echo no )"
+
+          echo "Installing dependencies..."
           npm ci --legacy-peer-deps
+
+          echo "Building Next.js project..."
           npm run build
 
-      - name: (optional) Upload .next for debugging
+      - name: Upload .next for debugging (optional)
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
@@ -50,3 +70,5 @@ jobs:
           api_location: ""
           output_location: ".next"
           skip_app_build: true
+          # If the deployment token secret is missing, this prevents the action from failing.
+          skip_deploy_on_missing_secrets: true
