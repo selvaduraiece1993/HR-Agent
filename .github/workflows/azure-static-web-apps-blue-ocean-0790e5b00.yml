@@ -1,6 +1,5 @@
 name: Azure Static Web Apps CI/CD (TEST MODE WITH .env.local)
 
-
 on:
   push:
     branches: [main]
@@ -12,23 +11,29 @@ jobs:
 
     steps:
 
+      # ---------------------------------------------
+      # 1. Checkout repo
+      # ---------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # ---------------------------------------------
+      # 2. Load .env.local → clean → export as outputs
+      # ---------------------------------------------
       - name: Load environment variables from .env.local
         id: loadenv
         shell: bash
         run: |
           echo "Checking .env.local..."
           if [ ! -f ".env.local" ]; then
-            echo "❌ ERROR: .env.local file NOT FOUND in repository root!"
+            echo "❌ ERROR: .env.local file NOT FOUND!"
             exit 1
           fi
 
-          echo "Cleaning .env.local (removing comments + blank lines)..."
+          echo "Cleaning .env.local (remove comments + blank lines)..."
           grep -v '^\s*$' .env.local | grep -v '^\s*#' > clean_env.txt
 
-          echo "Exporting environment variables..."
+          echo "Exporting env variables..."
           while IFS='=' read -r key value; do
             if [[ ! -z "$key" ]]; then
               echo "Loaded: $key"
@@ -36,32 +41,47 @@ jobs:
             fi
           done < clean_env.txt
 
+      # ---------------------------------------------
+      # 3. Setup Node.js
+      # ---------------------------------------------
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
+      # ---------------------------------------------
+      # 4. Install dependencies (local test only)
+      # ---------------------------------------------
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
+      # ---------------------------------------------
+      # 5. Local Next.js build (optional)
+      # ---------------------------------------------
       - name: Validate Next.js build using .env.local
         env:
           ${{ steps.loadenv.outputs }}
         run: npm run build
 
+      # ---------------------------------------------
+      # 6. Deploy to Azure Static Web Apps (TEST MODE)
+      # ---------------------------------------------
       - name: Deploy to Azure Static Web Apps (TEST MODE)
         uses: Azure/static-web-apps-deploy@v1
         with:
-          # ⬇⬇⬇ UPDATED: Using your actual secret name
+          # ⭐ Your actual secret name
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          
+
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
+
           app_location: "/"
           output_location: ".next"
+
+          # ⭐ FORCE Azure Oryx to use legacy-peer-deps
           skip_app_build: false
+          app_build_command: "npm install --legacy-peer-deps && npm run build"
+
         env:
           ${{ steps.loadenv.outputs }}
-
-
