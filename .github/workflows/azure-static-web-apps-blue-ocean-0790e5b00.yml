@@ -1,5 +1,6 @@
 name: Azure Static Web Apps CI/CD (TEST MODE WITH .env.local)
 
+
 on:
   push:
     branches: [main]
@@ -62,3 +63,4 @@ jobs:
           skip_app_build: false
         env:
           ${{ steps.loadenv.outputs }}
+
