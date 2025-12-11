@@ -1,4 +1,4 @@
-name: Azure Static Web Apps CI/CD (TEST MODE USING .env.local)
+name: Azure Static Web Apps CI/CD (TEST MODE)
 
 on:
   push:
@@ -7,25 +7,31 @@ on:
 jobs:
   build_and_deploy_job:
     runs-on: ubuntu-latest
-    name: Build & Deploy (Test Mode)
+    name: Build & Deploy Using .env.local (TESTING)
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Load .env.local for testing
+      - name: Load .env.local and export variables
+        id: loadenv
         run: |
-          echo "Loading .env.local from repo..."
-          if [ -f ".env.local" ]; then
-            export $(grep -v '^#' .env.local | xargs)
-          else
-            echo "❌ .env.local not found"
+          echo "Loading .env.local..."
+          if [ ! -f ".env.local" ]; then
+            echo "❌ ERROR: .env.local not found"
             exit 1
           fi
 
-          # Dump the environment variables into a temp file for Azure SWA to use
-          echo "Creating azure-env-file..."
-          printenv > azure-env-file.env
+          # Read each line and turn into GitHub output
+          while IFS='=' read -r key value; do
+            if [[ ! -z "$key" ]]; then
+              echo "$key=$value" >> env_export.txt
+              echo "::set-output name=$key::$value"
+            fi
+          done < .env.local
+
+          echo "Environment variables loaded:"
+          cat env_export.txt
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -36,12 +42,13 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Test local build
+      - name: Test Next.js build locally with .env.local
         env:
-          $(cat .env.local | sed 's/^/"/;s/=/="/;s/$/"/' )
+          # Inject ALL env variables dynamically
+          ${{ steps.loadenv.outputs }}
         run: npm run build
 
-      - name: Deploy to Azure Static Web Apps (FORCE USING ENV FILE)
+      - name: Deploy to Azure Static Web Apps (TEST MODE)
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
@@ -51,5 +58,5 @@ jobs:
           output_location: ".next"
           skip_app_build: false
         env:
-          # Load env variables from our prepared env file
-          $(cat .env.local | sed 's/^/"/;s/=/="/;s/$/"/')
+          # Inject ALL env vars again for Azure build
+          ${{ steps.loadenv.outputs }}
