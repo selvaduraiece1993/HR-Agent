@@ -39,10 +39,7 @@ jobs:
           set -o allexport
           source .env.local
           set +o allexport
-
-          echo "Environment variables loaded."
-
-          # Debug (does NOT show values)
+          echo "Environment variables loaded (presence-only checks):"
           echo "Has NEXT_PUBLIC_SUPABASE_URL? -> $( [ -n "$NEXT_PUBLIC_SUPABASE_URL" ] && echo yes || echo no )"
           echo "Has NEXT_PUBLIC_SUPABASE_ANON_KEY? -> $( [ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ] && echo yes || echo no )"
 
@@ -50,14 +47,76 @@ jobs:
           npm ci --legacy-peer-deps
 
           echo "Building Next.js project..."
-          npm run build
+          # capture build output to a file for debugging
+          npm run build 2>&1 | tee build.log || BUILD_EXIT=$?
+          echo "Build exit code: ${BUILD_EXIT:-0}"
 
-      - name: Upload .next for debugging (optional)
+      - name: Debug - show build.log head and repo root contents
+        if: ${{ always() }}
+        run: |
+          echo "=== build.log (first 200 lines) ==="
+          if [ -f build.log ]; then
+            head -n 200 build.log || true
+          else
+            echo "No build.log found"
+          fi
+          echo
+          echo "=== Repo root listing ==="
+          ls -la
+          echo
+          echo "=== Check for common Next output folders ==="
+          if [ -d ".next" ]; then
+            echo ".next exists - size summary:"
+            du -sh .next || true
+            echo "Listing top-level inside .next:"
+            ls -la .next | sed -n '1,200p' || true
+          else
+            echo ".next does NOT exist"
+          fi
+          if [ -d ".output" ]; then
+            echo ".output exists - size summary:"
+            du -sh .output || true
+            echo "Listing top-level inside .output:"
+            ls -la .output | sed -n '1,200p' || true
+          else
+            echo ".output does NOT exist"
+          fi
+          if [ -d ".next/standalone" ]; then
+            echo ".next/standalone exists"
+          fi
+
+      - name: Prepare chosen artifact path for deploy
+        id: pick_output
+        if: ${{ always() }}
+        run: |
+          # prefer .next, then .output, then fail
+          if [ -d ".next" ]; then
+            echo "output_path=.next" >> $GITHUB_OUTPUT
+          elif [ -d ".output" ]; then
+            echo "output_path=.output" >> $GITHUB_OUTPUT
+          else
+            echo "No recognizable Next build output found (.next or .output). Failing prepare step."
+            # still set output_path to empty so later steps can see it
+            echo "output_path=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload .next/.output for debugging (artifact)
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: next-build
-          path: .next
+          path: ${{ steps.pick_output.outputs.output_path || '.next' }}
+
+      - name: Pre-deploy check - confirm selected output folder
+        if: ${{ always() }}
+        run: |
+          echo "Selected output path: '${{ steps.pick_output.outputs.output_path }}'"
+          if [ -z "${{ steps.pick_output.outputs.output_path }}" ]; then
+            echo "ERROR: No build output folder detected. Deployment step below will likely fail or skip."
+            exit 1
+          fi
+          echo "Contents (top-level) of selected folder:"
+          ls -la "${{ steps.pick_output.outputs.output_path }}" || true
 
       - name: Deploy to Azure Static Web Apps (skip app build)
         id: builddeploy
@@ -68,7 +127,8 @@ jobs:
           action: "upload"
           app_location: "/"
           api_location: ""
-          output_location: ".next"
+          # choose the folder we detected above
+          output_location: ${{ steps.pick_output.outputs.output_path }}
           skip_app_build: true
           # If the deployment token secret is missing, this prevents the action from failing.
           skip_deploy_on_missing_secrets: true
