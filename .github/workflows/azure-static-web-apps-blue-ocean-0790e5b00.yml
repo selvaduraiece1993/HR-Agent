@@ -1,62 +1,80 @@
-name: Azure Static Web Apps CI/CD (TEST MODE WITH .env.local)
+name: Deploy Next.js to Azure App Service with .env.local
 
 on:
   push:
-    branches: [main]
+    branches: ["main"]
 
 jobs:
-  build_and_deploy_job:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    name: Build & Deploy Next.js using .env.local (TEST MODE)
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      # Load .env.local
-      - name: Load environment variables from .env.local
+      # -----------------------------------------
+      # 1. Load .env.local and convert to JSON
+      # -----------------------------------------
+      - name: Load .env.local
         id: loadenv
-        shell: bash
         run: |
           if [ ! -f ".env.local" ]; then
-            echo "❌ .env.local file NOT FOUND!"
+            echo "❌ .env.local not found!"
             exit 1
           fi
 
-          grep -v '^\s*$' .env.local | grep -v '^\s*#' > clean_env.txt
+          echo "Creating env.json for Azure App Settings..."
 
+          echo "{" > env.json
           while IFS='=' read -r key value; do
-            echo "::set-output name=$key::$value"
-          done < clean_env.txt
+            [[ "$key" =~ ^#.*$ || -z "$key" ]] && continue
+            echo "\"$key\": \"$value\"," >> env.json
+          done < .env.local
+          sed -i '$ s/,$//' env.json
+          echo "}" >> env.json
 
+          echo "Generated env.json:"
+          cat env.json
+
+      # -----------------------------------------
+      # 2. Install Node
+      # -----------------------------------------
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: "20"
+          cache: "npm"
 
-      # ⭐ Build LOCALLY using legacy-peer-deps (this works!)
+      # -----------------------------------------
+      # 3. Install Deps
+      # -----------------------------------------
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
+      # -----------------------------------------
+      # 4. Build
+      # -----------------------------------------
       - name: Build Next.js app
-        env:
-          ${{ steps.loadenv.outputs }}
         run: npm run build
-
-      # ⭐ Deploy WITHOUT Azure build (skip_app_build: true)
-      - name: Deploy to Azure Static Web Apps (UPLOAD ONLY - NO BUILD)
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_BLUE_OCEAN_0790E5B00 }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          action: "upload"
-
-          app_location: "/"
-          output_location: ".next"
-
-          # ⭐ Disable Azure’s Oryx build completely
-          skip_app_build: true
-
         env:
           ${{ steps.loadenv.outputs }}
+
+      # -----------------------------------------
+      # 5. Apply .env.local to Azure App Settings
+      # -----------------------------------------
+      - name: Set Azure App Settings from env.json
+        uses: azure/appservice-settings@v1
+        with:
+          app-name: HR-Agent     # ← Replace this
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
+          app-settings-json: ./env.json
+
+      # -----------------------------------------
+      # 6. Deploy App
+      # -----------------------------------------
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: HR-Agent     # ← Replace this
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
+          package: .
