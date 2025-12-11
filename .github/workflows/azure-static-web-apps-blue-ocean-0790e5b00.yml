@@ -10,78 +10,53 @@ jobs:
     name: Build & Deploy Next.js using .env.local (TEST MODE)
 
     steps:
-
-      # ---------------------------------------------
-      # 1. Checkout repo
-      # ---------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # ---------------------------------------------
-      # 2. Load .env.local → clean → export as outputs
-      # ---------------------------------------------
+      # Load .env.local
       - name: Load environment variables from .env.local
         id: loadenv
         shell: bash
         run: |
-          echo "Checking .env.local..."
           if [ ! -f ".env.local" ]; then
-            echo "❌ ERROR: .env.local file NOT FOUND!"
+            echo "❌ .env.local file NOT FOUND!"
             exit 1
           fi
 
-          echo "Cleaning .env.local (remove comments + blank lines)..."
           grep -v '^\s*$' .env.local | grep -v '^\s*#' > clean_env.txt
 
-          echo "Exporting env variables..."
           while IFS='=' read -r key value; do
-            if [[ ! -z "$key" ]]; then
-              echo "Loaded: $key"
-              echo "::set-output name=$key::$value"
-            fi
+            echo "::set-output name=$key::$value"
           done < clean_env.txt
 
-      # ---------------------------------------------
-      # 3. Setup Node.js
-      # ---------------------------------------------
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      # ---------------------------------------------
-      # 4. Install dependencies (local test only)
-      # ---------------------------------------------
+      # ⭐ Build LOCALLY using legacy-peer-deps (this works!)
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      # ---------------------------------------------
-      # 5. Local Next.js build (optional)
-      # ---------------------------------------------
-      - name: Validate Next.js build using .env.local
+      - name: Build Next.js app
         env:
           ${{ steps.loadenv.outputs }}
         run: npm run build
 
-      # ---------------------------------------------
-      # 6. Deploy to Azure Static Web Apps (TEST MODE)
-      # ---------------------------------------------
-      - name: Deploy to Azure Static Web Apps (TEST MODE)
+      # ⭐ Deploy WITHOUT Azure build (skip_app_build: true)
+      - name: Deploy to Azure Static Web Apps (UPLOAD ONLY - NO BUILD)
         uses: Azure/static-web-apps-deploy@v1
         with:
-          # ⭐ Your actual secret name
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_BLUE_OCEAN_0790E5B00 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
 
           app_location: "/"
           output_location: ".next"
 
-          # ⭐ FORCE Azure Oryx to use legacy-peer-deps
-          skip_app_build: false
-          app_build_command: "npm install --legacy-peer-deps && npm run build"
+          # ⭐ Disable Azure’s Oryx build completely
+          skip_app_build: true
 
         env:
           ${{ steps.loadenv.outputs }}
