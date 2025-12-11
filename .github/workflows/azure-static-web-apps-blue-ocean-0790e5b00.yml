@@ -25,34 +25,14 @@ jobs:
           node-version: '20.14.0'
           cache: 'npm'
 
-      - name: Load .env file and build
+      - name: Install dependencies (legacy peer deps) and build
         env:
           CI: true
         run: |
-          echo "Checking for .env file..."
-          if [ ! -f .env ]; then
-            echo "ERROR: .env file not found in repository root!"
-            exit 1
-          fi
-          
-          echo "Sourcing .env..."
-          set -o allexport
-          source .env
-          set +o allexport
-
-          echo "Environment variables loaded."
-
-          # Debug (does NOT show values)
-          echo "Has NEXT_PUBLIC_SUPABASE_URL? -> $( [ -n "$NEXT_PUBLIC_SUPABASE_URL" ] && echo yes || echo no )"
-          echo "Has NEXT_PUBLIC_SUPABASE_ANON_KEY? -> $( [ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ] && echo yes || echo no )"
-
-          echo "Installing dependencies..."
           npm ci --legacy-peer-deps
-          
-          echo "Building Next.js project..."
           npm run build
 
-      - name: Upload .next for debugging (optional)
+      - name: (optional) Upload .next for debugging
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
@@ -66,7 +46,7 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          app_location: "/"          # app source
-          api_location: ""           # no API
-          output_location: ".next"   # upload Next.js build output
-          skip_app_build: true       # ensures Azure does NOT rebuild the project
+          app_location: "/"
+          api_location: ""
+          output_location: ".next"
+          skip_app_build: true
