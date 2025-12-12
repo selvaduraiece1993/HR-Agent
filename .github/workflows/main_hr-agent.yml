@@ -1,7 +1,4 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Build and deploy Node.js app to Azure Web App - HR-Agent
+name: Build and deploy Next.js app to Azure Web App - HR-Agent
 
 on:
   push:
@@ -12,8 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read # This is required for actions/checkout
 
     steps:
       - uses: actions/checkout@v4
@@ -21,19 +16,30 @@ jobs:
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
-          node-version: '24.x'
+          node-version: '18.x'
 
-      - name: npm install, build, and test
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Next.js app
+        run: npm run build
+
+      - name: Prepare publish folder
         run: |
-          npm install
-          npm run build --if-present
-          npm run test --if-present
+          mkdir publish
+          cp -r .next publish/
+          cp -r public publish/
+          cp package.json publish/
+          cp package-lock.json publish/
+          # Install only production deps inside publish folder
+          cd publish
+          npm install --omit=dev
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
-          name: node-app
-          path: .
+          name: next-app
+          path: publish/
 
   deploy:
     runs-on: ubuntu-latest
@@ -43,13 +49,12 @@ jobs:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: node-app
+          name: next-app
 
       - name: Deploy to Azure Web App
-        id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'HR-Agent'
           slot-name: 'Production'
-          package: .
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_742FD4FE335245E28D02FC68657AF692 }}
+          package: .
